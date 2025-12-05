@@ -33,13 +33,15 @@ typedef struct
 {
     bool rondaContinuar;
     int puntaje;
+    int totalRonda;
+    bool mostrarRonda;
 } Ronda;
 
 void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol);
 void dibujarPato(Imagen *patoImg, Pato *pato);
 void vueloPato(Pato *pato);
 bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, Imagen *scoreImg);
-void estadoPato(Imagen *patoImg, Pato *pato);
+void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda);
 void gameLoop(Imagen *patoImg, Imagen *arbol, Imagen *piso, Pato *pato, Imagen *scoreImg, Ronda *ronda);
 
 int main()
@@ -51,12 +53,14 @@ int main()
     Imagen *patoImg = ventana.creaImagenConMascara("./pato1.bmp", "./patoMascara.bmp");
     Imagen *scoreImg = ventana.creaImagenConMascara("./score.bmp", "./scoreMascara.bmp");
     Pato *pato = (Pato *)malloc(sizeof(Pato));
+
     if (pato == NULL)
     {
         printf("El pato nacio morido :'/. Error en el programa...");
         ventana.imprimeEnConsola("El pato nacio morido :'/. Error en el programa...");
         return 1;
     }
+
     pato->coorX = 600;
     pato->coorY = 400;
     pato->estado = 0;
@@ -65,9 +69,13 @@ int main()
     pato->velX = 5;
     pato->velY = -3;
     pato->totalPatos = 10;
+
     Ronda *ronda = (Ronda *)malloc(sizeof(Ronda));
     ronda->rondaContinuar = true;
     ronda->puntaje = 0;
+    ronda->totalRonda = 1;
+    ronda->mostrarRonda = true;
+
     bool derecha_pres = false, izquierda_pres = false;
     ventana.tamanioVentana(1280, 720);
     ventana.tituloVentana("Duck Hunt");
@@ -89,6 +97,9 @@ int main()
     }
     if (ronda->rondaContinuar == false)
     {
+        ventana.limpiaVentana();
+        gameLoop(patoImg, arbolImg, pisoImg, pato, scoreImg, ronda);
+        ventana.actualizaVentana();
         ventana.muestraMensaje("Hasta luego!");
     }
     ventana.cierraVentana();
@@ -125,9 +136,10 @@ void vueloPato(Pato *pato)
         pato->velX *= -1;
     }
 
-    if (pato->coorY >= (ventana.altoVentana() - 300))
+    if (pato->coorY >= (ventana.altoVentana() - 300) && pato->estado == 0)
     {
         pato->estado = 2;
+        pato->totalPatos--;
     }
 }
 
@@ -147,23 +159,23 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
                 pato->estado = 1;
                 pato->totalPatos--;
                 ronda->puntaje += 1000;
-                // ventana.limpiaVentana();
-                // ventana.color(COLORES.NEGRO);
-                // ventana.muestraTextoParametroInt(100, 200, "Le diste al pato! Puntaje: %d", 20, "Arial", (ronda->puntaje));
-                // ventana.actualizaVentana();
                 pato->mostrarScore = true;
+                ronda->mostrarRonda = true;
                 if (pato->totalPatos == 0)
                 {
                     dibujarEscenarioRes1(pisoImg, arbolImg);
                     ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, scoreImg);
                     ventana.color(COLORES.BLANCO);
                     ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
+                    ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
+                    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
                     ventana.actualizaVentana();
                     ronda->rondaContinuar = ventana.muestraPregunta("Terminaste el juego, felicidades! :D. Continuar?");
-                    if (ronda)
+                    if (ronda->rondaContinuar == true)
                     {
                         pato->totalPatos = 10;
                         pato->estado = 2;
+                        ronda->totalRonda++;
                     }
                 }
                 return false;
@@ -177,18 +189,32 @@ void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Im
     dibujarEscenarioRes1(pisoImg, arbolImg);
     ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, scoreImg);
 
-    vueloPato(pato);
-    dispararPato(pato, ronda, pisoImg, arbolImg, scoreImg);
-    estadoPato(patoImg, pato);
-    if (pato->estado != 2)
+    if (ronda->rondaContinuar)
+    {
+        vueloPato(pato);
+        dispararPato(pato, ronda, pisoImg, arbolImg, scoreImg);
+        estadoPato(patoImg, pato, ronda);
+    }
+
+    if (ronda->rondaContinuar && pato->estado != 2)
     {
         dibujarPato(patoImg, pato);
     }
+
     if (pato->mostrarScore)
     {
         ventana.color(COLORES.BLANCO);
         ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
     }
+
+    if (ronda->mostrarRonda)
+    {
+        ventana.color(COLORES.BLANCO);
+        ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
+    }
+
+    ventana.color(COLORES.BLANCO);
+    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
 
     ventana.color(COLORES.NEGRO);
     int rx, ry;
@@ -196,15 +222,21 @@ void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Im
     ventana.circuloRelleno(rx, ry, 10);
 }
 
-void estadoPato(Imagen *patoImg, Pato *pato)
+void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
 {
     if (pato->estado == 1)
     {
         pato->coorY += VELOCIDAD_CAIDA;
 
-        if (pato->coorY >= ALTURA_DEL_PASTO)
+        if (pato->coorY >= 350)
         {
             pato->estado = 2;
+
+            if (pato->totalPatos == 0)
+            {
+                ronda->rondaContinuar = false;
+                ventana.muestraMensaje1("Ya no hay patos!", "GAME OVER");
+            }
         }
     }
     else if (pato->estado == 2)
