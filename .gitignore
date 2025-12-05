@@ -1,0 +1,4 @@
+# Ignorar archivos ejecutables de Windows
+*.exe
+main.exe
+*.o
