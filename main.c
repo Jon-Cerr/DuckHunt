@@ -9,12 +9,20 @@
  */
 
 #include "graficos.h"
+#include "simplecontroller.h"
+
 #include <stdlib.h>
 #include <time.h>
-#define ALTURA_DEL_PASTO 600
 #define VELOCIDAD_CAIDA 8
 #define MIN_Y_APARICION 50
 #define MAX_Y_APARICION 300
+#define JX 15
+#define JY 2
+#define SW 4
+#define MOTOR 13
+
+#define AJUSTEX 0.45
+#define AJUSTEY 0.35
 
 typedef struct
 {
@@ -37,6 +45,7 @@ typedef struct
     bool mostrarRonda;
 } Ronda;
 
+void iniciarJuego(Imagen *logoImg);
 void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol);
 void dibujarPato(Imagen *patoImg, Pato *pato);
 void vueloPato(Pato *pato);
@@ -52,6 +61,8 @@ int main()
     Imagen *arbolImg = ventana.creaImagen("./arbol.bmp");
     Imagen *patoImg = ventana.creaImagenConMascara("./pato1.bmp", "./patoMascara.bmp");
     Imagen *scoreImg = ventana.creaImagenConMascara("./score.bmp", "./scoreMascara.bmp");
+    Imagen *logoImg = ventana.creaImagenConMascara("./logo.bmp", "./logoMascara.bmp");
+
     Pato *pato = (Pato *)malloc(sizeof(Pato));
 
     if (pato == NULL)
@@ -76,7 +87,6 @@ int main()
     ronda->totalRonda = 1;
     ronda->mostrarRonda = true;
 
-    bool derecha_pres = false, izquierda_pres = false;
     ventana.tamanioVentana(1280, 720);
     ventana.tituloVentana("Duck Hunt");
     ventana.colorFondo(COLORES.AZULC);
@@ -84,6 +94,7 @@ int main()
 
     while (tecla != TECLAS.ESCAPE && (ronda->rondaContinuar))
     {
+
         tecla = ventana.teclaPresionada();
         ventana.limpiaVentana(); // Limpiamos
         if (ronda->rondaContinuar == false)
@@ -106,6 +117,16 @@ int main()
     free(pato);
     return 0;
 }
+
+/*
+void iniciarJuego(Imagen *logoImg)
+{
+    ventana.limpiaVentana();
+    ventana.crearBoton();
+    ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 200, (ventana.altoVentana() / 2) - 350, 400, 400, logoImg);
+    ventana.actualizaVentana();
+}
+    */
 
 void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol)
 {
@@ -148,6 +169,41 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
     int rx, ry;
     bool botonPres = ventana.ratonBotonIzquierdo();
     ventana.raton(&rx, &ry);
+
+    /*
+    Board *esp32 = connectDevice("COM7", B115200);
+    int rx = 300, ry = 300;
+    float joyX, joyY;
+    int ajusteX, ajusteY;
+    bool btn = ventana.ratonBotonIzquierdo();
+
+    esp32->pinMode(esp32, JX, INPUT);
+    esp32->pinMode(esp32, JY, INPUT);
+    esp32->pinMode(esp32, SW, INPUT_PULLUP);
+    esp32->pinMode(esp32, MOTOR, OUTPUT);
+
+    joyX = esp32->analogRead(esp32, JX);
+    joyY = esp32->analogRead(esp32, JY);
+    btn = esp32->digitalRead(esp32, SW);
+
+    joyX -= AJUSTEX;
+
+    if (joyX >= 0.0)
+        ajusteX = joyX * (10.0 / (1.0 - AJUSTEX));
+    else
+        ajusteX = joyX * (11.0 / (AJUSTEX));
+
+    joyY -= AJUSTEY;
+
+    if (joyY >= 0.0)
+        ajusteY = joyY * (11.0 / (1.0 - AJUSTEY));
+    else
+        ajusteY = joyY * (11.0 / (AJUSTEY));
+
+    rx += ajusteX;
+    ry += ajusteY;
+    */
+
     if (botonPres && pato->estado == 0)
     {
         if (rx >= pato->coorX &&
@@ -217,9 +273,13 @@ void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Im
     ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
 
     ventana.color(COLORES.NEGRO);
-    int rx, ry;
-    ventana.raton(&rx, &ry);
-    ventana.circuloRelleno(rx, ry, 10);
+    int rx = ventana.ratonX(), ry = ventana.ratonY();
+    ventana.circulo(rx, ry, 20);
+    ventana.linea(rx - 10, ry, rx - 30, ry);
+    ventana.linea(rx + 10, ry, rx + 30, ry);
+    ventana.linea(rx, ry - 10, rx, ry - 30);
+    ventana.linea(rx, ry + 10, rx, ry + 30);
+    ventana.circuloRelleno(rx, ry, 2);
 }
 
 void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
@@ -247,5 +307,57 @@ void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
         pato->velX = (rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1);
         pato->velY = (rand() % 5) - 2;
         pato->estado = 0;
+    }
+}
+
+void disparar()
+{
+    Board *esp32 = connectDevice("COM7", B115200);
+    int rx = 300, ry = 300;
+    float joyX, joyY;
+    int ajusteX, ajusteY;
+    bool btn = ventana.ratonBotonIzquierdo();
+
+    esp32->pinMode(esp32, JX, INPUT);
+    esp32->pinMode(esp32, JY, INPUT);
+    esp32->pinMode(esp32, SW, INPUT_PULLUP);
+    esp32->pinMode(esp32, MOTOR, OUTPUT);
+
+    joyX = esp32->analogRead(esp32, JX);
+    joyY = esp32->analogRead(esp32, JY);
+    btn = esp32->digitalRead(esp32, SW);
+
+    joyX -= AJUSTEX;
+
+    if (joyX >= 0.0)
+        ajusteX = joyX * (10.0 / (1.0 - AJUSTEX));
+    else
+        ajusteX = joyX * (11.0 / (AJUSTEX));
+
+    joyY -= AJUSTEY;
+
+    if (joyY >= 0.0)
+        ajusteY = joyY * (11.0 / (1.0 - AJUSTEY));
+    else
+        ajusteY = joyY * (11.0 / (AJUSTEY));
+
+    rx += ajusteX;
+    ry += ajusteY;
+
+    ventana.color(COLORES.CYAN);
+    ventana.circulo(rx, ry, 20);
+    ventana.linea(rx - 10, ry, rx - 30, ry);
+    ventana.linea(rx + 10, ry, rx + 30, ry);
+    ventana.linea(rx, ry - 10, rx, ry - 30);
+    ventana.linea(rx, ry + 10, rx, ry + 30);
+    ventana.circuloRelleno(rx, ry, 2);
+
+    if (btn)
+    {
+        esp32->digitalWrite(esp32, MOTOR, true);
+    }
+    else
+    {
+        esp32->digitalWrite(esp32, MOTOR, false);
     }
 }

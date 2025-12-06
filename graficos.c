@@ -24,7 +24,7 @@
 // Windows ////////////////////////////////////////////////////////////////////////////
 
 #include <stdbool.h>
-#include<stdio.h>
+#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <process.h>
@@ -149,8 +149,8 @@ static COLORREF _colores[] = {
     RGB(255, 0, 255),   // MAGENTA
     RGB(0, 255, 255),   // CYAN
     RGB(255, 255, 255), // BLANCO
-    RGB(128, 64, 0), // CAFE
-    RGB(0, 170, 228), // AZUL CIELO
+    RGB(128, 64, 0),    // CAFE
+    RGB(0, 170, 228),   // AZUL CIELO
 };
 
 // Declaraciones de funciones
@@ -556,7 +556,8 @@ int teclaSoltada()
 
     int key = queue_pop(&keyUpQueue);
 
-    while(queue_front(&keyDownQueue) == key) queue_pop(&keyDownQueue);
+    while (queue_front(&keyDownQueue) == key)
+        queue_pop(&keyDownQueue);
 
     return key;
 }
@@ -617,7 +618,8 @@ void muestraMensaje1(const char *msj, const char *titulo)
     MessageBox(hWnd, msj, titulo, MB_OK);
 }
 
-void muestraMensajeParametroInt(const char *msj, const int param, const char *titulo) {
+void muestraMensajeParametroInt(const char *msj, const int param, const char *titulo)
+{
     char bufferSize[100];
     sprintf(bufferSize, msj, param);
 
@@ -625,8 +627,7 @@ void muestraMensajeParametroInt(const char *msj, const int param, const char *ti
         NULL,
         bufferSize,
         titulo,
-        MB_OK | MB_ICONINFORMATION
-    );
+        MB_OK | MB_ICONINFORMATION);
 }
 
 void muestraTextoParametroInt(int x, int y, const char *texto, int tamanioFuente, const char *fuente, const int param)
@@ -833,7 +834,7 @@ static void _renderImage(int x, int y, int w, int h, const Imagen *imagen)
                 if (imagen->alto == h && imagen->ancho == w)
                 {
                     BitBlt(hDCMem, x, y, w, h,
-                               imagen->hdcimg, 0, 0, SRCPAINT);
+                           imagen->hdcimg, 0, 0, SRCPAINT);
                 }
                 else
                 {
