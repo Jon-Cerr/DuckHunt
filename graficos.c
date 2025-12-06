@@ -969,6 +969,25 @@ void tituloVentana(const char *titulo)
     SetWindowTextA(hWnd, titulo);
 }
 
+void reproducirAudio(const char *audio)
+{
+    if (!PlaySound(audio, NULL, SND_FILENAME | SND_ASYNC))
+    {
+        printf("No se pudo reproducir audio.\n");
+    }
+}
+
+void LimpiarEstadoBotonIzquierdo()
+{
+    INPUT input[1];
+    ZeroMemory(input, sizeof(input));
+
+    input[0].type = INPUT_MOUSE;
+    input[0].mi.dwFlags = MOUSEEVENTF_LEFTUP; // Simula la liberación del botón izquierdo
+
+    SendInput(ARRAYSIZE(input), input, sizeof(INPUT));
+}
+
 // Estructura de Ventana
 
 const struct Ventana ventana = {
@@ -1016,7 +1035,9 @@ const struct Ventana ventana = {
     ratonY,
     ratonBotones,
     ratonBotonIzquierdo,
-    ratonBotonDerecho};
+    ratonBotonDerecho,
+    reproducirAudio,
+    LimpiarEstadoBotonIzquierdo};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 

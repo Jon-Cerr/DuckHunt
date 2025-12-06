@@ -497,6 +497,15 @@ extern const struct Ventana
 	 */
 	bool (*ratonBotonDerecho)(void);
 
+	/**
+	 * @brief Reproduce un audio de forma asincrona
+	 * 
+	 * @param audio Directorio donde se encuentra el audio
+	 */
+	void (*reproducirAudio)(const char *audio);
+
+	void (*LimpiarEstadoBotonIzquierdo)();
+
 } ventana;
 
 #endif

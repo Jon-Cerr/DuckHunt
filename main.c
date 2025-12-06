@@ -45,13 +45,30 @@ typedef struct
     bool mostrarRonda;
 } Ronda;
 
-void iniciarJuego(Imagen *logoImg);
+typedef struct
+{
+    Pato pato;
+    Ronda ronda;
+} Juego;
+
+typedef enum
+{
+    ESTADO_MENU,
+    ESTADO_JUGANDO,
+    ESTADO_FIN,
+} EstadoJuego;
+
+Pato *crearPato();
+Ronda *crearRonda();
+void iniciarJuego(Imagen *logoImg, EstadoJuego *estadoJuego);
 void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol);
 void dibujarPato(Imagen *patoImg, Pato *pato);
 void vueloPato(Pato *pato);
 bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, Imagen *scoreImg);
-void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda);
 void gameLoop(Imagen *patoImg, Imagen *arbol, Imagen *piso, Pato *pato, Imagen *scoreImg, Ronda *ronda);
+void dibujarMira();
+void mostrarInformacion(Pato *pato, Ronda *ronda);
+void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda);
 
 int main()
 {
@@ -63,38 +80,20 @@ int main()
     Imagen *scoreImg = ventana.creaImagenConMascara("./score.bmp", "./scoreMascara.bmp");
     Imagen *logoImg = ventana.creaImagenConMascara("./logo.bmp", "./logoMascara.bmp");
 
-    Pato *pato = (Pato *)malloc(sizeof(Pato));
+    Pato *pato = crearPato();
+    Ronda *ronda = crearRonda();
 
-    if (pato == NULL)
-    {
-        printf("El pato nacio morido :'/. Error en el programa...");
-        ventana.imprimeEnConsola("El pato nacio morido :'/. Error en el programa...");
-        return 1;
-    }
-
-    pato->coorX = 600;
-    pato->coorY = 400;
-    pato->estado = 0;
-    pato->ancho = 100;
-    pato->alto = 100;
-    pato->velX = 5;
-    pato->velY = -3;
-    pato->totalPatos = 10;
-
-    Ronda *ronda = (Ronda *)malloc(sizeof(Ronda));
-    ronda->rondaContinuar = true;
-    ronda->puntaje = 0;
-    ronda->totalRonda = 1;
-    ronda->mostrarRonda = true;
+    EstadoJuego estadoJuego = ESTADO_MENU;
 
     ventana.tamanioVentana(1280, 720);
     ventana.tituloVentana("Duck Hunt");
-    ventana.colorFondo(COLORES.AZULC);
     int tecla = ventana.teclaPresionada();
+
+    iniciarJuego(logoImg, &estadoJuego);
+    ventana.colorFondo(COLORES.AZULC);
 
     while (tecla != TECLAS.ESCAPE && (ronda->rondaContinuar))
     {
-
         tecla = ventana.teclaPresionada();
         ventana.limpiaVentana(); // Limpiamos
         if (ronda->rondaContinuar == false)
@@ -102,7 +101,11 @@ int main()
             break;
         }
 
-        gameLoop(patoImg, arbolImg, pisoImg, pato, scoreImg, ronda);
+        if (estadoJuego == ESTADO_JUGANDO)
+        {
+            gameLoop(patoImg, arbolImg, pisoImg, pato, scoreImg, ronda);
+        }
+
         ventana.actualizaVentana(); // Mostramos
         ventana.espera(10);
     }
@@ -115,18 +118,88 @@ int main()
     }
     ventana.cierraVentana();
     free(pato);
+    free(ronda);
     return 0;
 }
 
-/*
-void iniciarJuego(Imagen *logoImg)
+void iniciarJuego(Imagen *logoImg, EstadoJuego *estadoJuego)
 {
-    ventana.limpiaVentana();
-    ventana.crearBoton();
-    ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 200, (ventana.altoVentana() / 2) - 350, 400, 400, logoImg);
-    ventana.actualizaVentana();
+    int coorBtnX = (ventana.anchoVentana() / 2) - (300 / 2);
+    int coorBtnY = (ventana.altoVentana() / 2) + 80;
+    int rx, ry;
+
+    ventana.reproducirAudio("./audio.wav");
+    while (*estadoJuego == ESTADO_MENU)
+    {
+        Imagen *startIcon = ventana.creaImagenConMascara("./startIcon.bmp", "./startIconMascara.bmp");
+        Imagen *fondoImg = ventana.creaImagen("./fondoInicio.bmp");
+        ventana.limpiaVentana();
+        ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), fondoImg);
+        ventana.muestraImagenEscalada(coorBtnX - 50, coorBtnY - 450, 400, 400, logoImg);
+        ventana.color(COLORES.BLANCO);
+        ventana.muestraImagenEscalada(coorBtnX - 10, coorBtnY - 10, 350, 100, startIcon);
+        ventana.raton(&rx, &ry);
+        ventana.actualizaVentana();
+        if (ventana.ratonBotonIzquierdo())
+        {
+            if (rx >= coorBtnX &&
+                rx <= (coorBtnX + 300) &&
+                ry >= coorBtnY &&
+                ry <= (coorBtnY + 80))
+            {
+                ventana.reproducirAudio(NULL);
+                ventana.LimpiarEstadoBotonIzquierdo();
+                *estadoJuego = ESTADO_JUGANDO;
+            }
+        }
+        if (ventana.teclaPresionada() == TECLAS.ESCAPE)
+        {
+            break;
+            exit(0);
+        }
+    }
 }
-    */
+
+Pato *crearPato()
+{
+    Pato *pato = (Pato *)malloc(sizeof(Pato));
+
+    if (pato == NULL)
+    {
+        printf("El pato nacio morido :'/. Error en el programa...");
+        ventana.imprimeEnConsola("El pato nacio morido :'/. Error en el programa...");
+        return NULL;
+    }
+
+    pato->coorX = 600;
+    pato->coorY = 400;
+    pato->estado = 0;
+    pato->ancho = 100;
+    pato->alto = 100;
+    pato->velX = 5;
+    pato->velY = -3;
+    pato->totalPatos = 10;
+    pato->mostrarScore = false;
+
+    return pato;
+}
+
+Ronda *crearRonda()
+{
+    Ronda *ronda = (Ronda *)malloc(sizeof(Ronda));
+
+    if (ronda == NULL)
+    {
+        return NULL;
+    }
+
+    ronda->rondaContinuar = true;
+    ronda->puntaje = 0;
+    ronda->totalRonda = 1;
+    ronda->mostrarRonda = true;
+
+    return ronda;
+}
 
 void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol)
 {
@@ -204,8 +277,12 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
     ry += ajusteY;
     */
 
+    //ventana.reproducirAudio(NULL);
+
     if (botonPres && pato->estado == 0)
     {
+        ventana.reproducirAudio("./shot.wav");
+        ventana.LimpiarEstadoBotonIzquierdo();
         if (rx >= pato->coorX &&
             rx <= (pato->coorX + pato->ancho))
         {
@@ -222,9 +299,7 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
                     dibujarEscenarioRes1(pisoImg, arbolImg);
                     ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, scoreImg);
                     ventana.color(COLORES.BLANCO);
-                    ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
-                    ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
-                    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
+                    mostrarInformacion(pato, ronda);
                     ventana.actualizaVentana();
                     ronda->rondaContinuar = ventana.muestraPregunta("Terminaste el juego, felicidades! :D. Continuar?");
                     if (ronda->rondaContinuar == true)
@@ -257,22 +332,18 @@ void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Im
         dibujarPato(patoImg, pato);
     }
 
-    if (pato->mostrarScore)
-    {
-        ventana.color(COLORES.BLANCO);
-        ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
-    }
-
-    if (ronda->mostrarRonda)
-    {
-        ventana.color(COLORES.BLANCO);
-        ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
-    }
-
     ventana.color(COLORES.BLANCO);
-    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
+    if (pato->mostrarScore && ronda->mostrarRonda)
+    {
+        mostrarInformacion(pato, ronda);
+    }
 
     ventana.color(COLORES.NEGRO);
+    dibujarMira();
+}
+
+void dibujarMira()
+{
     int rx = ventana.ratonX(), ry = ventana.ratonY();
     ventana.circulo(rx, ry, 20);
     ventana.linea(rx - 10, ry, rx - 30, ry);
@@ -282,15 +353,22 @@ void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Im
     ventana.circuloRelleno(rx, ry, 2);
 }
 
+void mostrarInformacion(Pato *pato, Ronda *ronda)
+{
+    ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
+    ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
+    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
+}
+
 void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
 {
-    if (pato->estado == 1)
+    if (pato->estado == 1) // pato cayendo
     {
         pato->coorY += VELOCIDAD_CAIDA;
 
         if (pato->coorY >= 350)
         {
-            pato->estado = 2;
+            pato->estado = 2; // pato fuera del mapa
 
             if (pato->totalPatos == 0)
             {
