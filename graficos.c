@@ -643,6 +643,12 @@ void muestraTextoParametroInt(int x, int y, const char *texto, int tamanioFuente
     DeleteObject(hf);
 }
 
+bool muestraPreguntaParamInt(const char *texto, const char *titulo, const int param) {
+    char formatMsj[256];
+    sprintf(formatMsj, texto, param);
+    return MessageBox(NULL, formatMsj, titulo, MB_OKCANCEL) == IDOK;
+}
+
 bool muestraPregunta(const char *msj)
 {
     return MessageBox(hWnd, msj, "Pregunta...", MB_OKCANCEL) == IDOK;
@@ -1012,6 +1018,7 @@ const struct Ventana ventana = {
     muestraMensaje1,
     muestraMensajeParametroInt,
     muestraTextoParametroInt,
+    muestraPreguntaParamInt,
     muestraPregunta,
     muestraPregunta1,
     espera,

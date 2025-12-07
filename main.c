@@ -11,6 +11,8 @@
 #include "graficos.h"
 #include "simplecontroller.h"
 
+#include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #define VELOCIDAD_CAIDA 8
@@ -20,6 +22,7 @@
 #define JY 2
 #define SW 4
 #define MOTOR 13
+#define MIN_PUNTUACION 20000
 
 #define AJUSTEX 0.45
 #define AJUSTEY 0.35
@@ -45,52 +48,70 @@ typedef struct
     bool mostrarRonda;
 } Ronda;
 
-typedef struct
-{
-    Pato pato;
-    Ronda ronda;
-} Juego;
-
 typedef enum
 {
     ESTADO_MENU,
     ESTADO_JUGANDO,
     ESTADO_FIN,
+    ESTADO_MARCADORES
 } EstadoJuego;
+
+typedef struct
+{
+    Imagen *pisoImg;
+    Imagen *arbolImg;
+    Imagen *patoImg;
+    Imagen *scoreImg;
+    Imagen *logoImg;
+    Imagen *startIcon;
+    Imagen *fondoImg;
+    Imagen *marksIcon;
+    Imagen *backButon;
+} Imagenes;
+
+typedef struct
+{
+    int puntaje;
+} Puntuacion;
 
 Pato *crearPato();
 Ronda *crearRonda();
-void iniciarJuego(Imagen *logoImg, EstadoJuego *estadoJuego);
-void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol);
-void dibujarPato(Imagen *patoImg, Pato *pato);
+Imagenes *crearImagenes();
+
+void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego);
+void gameLoop(Imagenes *imagenes, Pato *pato, Ronda *ronda);
+void dibujarEscenarioRes1(Imagenes *imagenes);
+void dibujarPato(Imagenes *imagenes, Pato *pato);
 void vueloPato(Pato *pato);
-bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, Imagen *scoreImg);
-void gameLoop(Imagen *patoImg, Imagen *arbol, Imagen *piso, Pato *pato, Imagen *scoreImg, Ronda *ronda);
+bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes);
 void dibujarMira();
 void mostrarInformacion(Pato *pato, Ronda *ronda);
-void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda);
+void iniciarMarcador();
+void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes);
+void estadoPato(Pato *pato, Ronda *ronda);
+void liberarImagenes(Imagenes *imagenes);
 
 int main()
 {
     srand(time(0));
     bool fs = false;
-    Imagen *pisoImg = ventana.creaImagen("./piso.bmp");
-    Imagen *arbolImg = ventana.creaImagen("./arbol.bmp");
-    Imagen *patoImg = ventana.creaImagenConMascara("./pato1.bmp", "./patoMascara.bmp");
-    Imagen *scoreImg = ventana.creaImagenConMascara("./score.bmp", "./scoreMascara.bmp");
-    Imagen *logoImg = ventana.creaImagenConMascara("./logo.bmp", "./logoMascara.bmp");
+    ventana.tamanioVentana(1280, 720);
+    ventana.tituloVentana("Duck Hunt");
 
     Pato *pato = crearPato();
     Ronda *ronda = crearRonda();
-
+    Imagenes *imagenes = crearImagenes();
     EstadoJuego estadoJuego = ESTADO_MENU;
 
-    ventana.tamanioVentana(1280, 720);
-    ventana.tituloVentana("Duck Hunt");
+    Puntuacion puntuacion;
+    puntuacion.puntaje = 0;
+
+    FILE *marcadores;
+
     int tecla = ventana.teclaPresionada();
 
-    iniciarJuego(logoImg, &estadoJuego);
     ventana.colorFondo(COLORES.AZULC);
+    iniciarJuego(imagenes, &estadoJuego);
 
     while (tecla != TECLAS.ESCAPE && (ronda->rondaContinuar))
     {
@@ -103,7 +124,7 @@ int main()
 
         if (estadoJuego == ESTADO_JUGANDO)
         {
-            gameLoop(patoImg, arbolImg, pisoImg, pato, scoreImg, ronda);
+            gameLoop(imagenes, pato, ronda);
         }
 
         ventana.actualizaVentana(); // Mostramos
@@ -112,52 +133,15 @@ int main()
     if (ronda->rondaContinuar == false)
     {
         ventana.limpiaVentana();
-        gameLoop(patoImg, arbolImg, pisoImg, pato, scoreImg, ronda);
+        gameLoop(imagenes, pato, ronda);
         ventana.actualizaVentana();
         ventana.muestraMensaje("Hasta luego!");
     }
     ventana.cierraVentana();
     free(pato);
     free(ronda);
+    liberarImagenes(imagenes);
     return 0;
-}
-
-void iniciarJuego(Imagen *logoImg, EstadoJuego *estadoJuego)
-{
-    int coorBtnX = (ventana.anchoVentana() / 2) - (300 / 2);
-    int coorBtnY = (ventana.altoVentana() / 2) + 80;
-    int rx, ry;
-
-    ventana.reproducirAudio("./audio.wav");
-    while (*estadoJuego == ESTADO_MENU)
-    {
-        Imagen *startIcon = ventana.creaImagenConMascara("./startIcon.bmp", "./startIconMascara.bmp");
-        Imagen *fondoImg = ventana.creaImagen("./fondoInicio.bmp");
-        ventana.limpiaVentana();
-        ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), fondoImg);
-        ventana.muestraImagenEscalada(coorBtnX - 50, coorBtnY - 450, 400, 400, logoImg);
-        ventana.color(COLORES.BLANCO);
-        ventana.muestraImagenEscalada(coorBtnX - 10, coorBtnY - 10, 350, 100, startIcon);
-        ventana.raton(&rx, &ry);
-        ventana.actualizaVentana();
-        if (ventana.ratonBotonIzquierdo())
-        {
-            if (rx >= coorBtnX &&
-                rx <= (coorBtnX + 300) &&
-                ry >= coorBtnY &&
-                ry <= (coorBtnY + 80))
-            {
-                ventana.reproducirAudio(NULL);
-                ventana.LimpiarEstadoBotonIzquierdo();
-                *estadoJuego = ESTADO_JUGANDO;
-            }
-        }
-        if (ventana.teclaPresionada() == TECLAS.ESCAPE)
-        {
-            break;
-            exit(0);
-        }
-    }
 }
 
 Pato *crearPato()
@@ -201,15 +185,121 @@ Ronda *crearRonda()
     return ronda;
 }
 
-void dibujarEscenarioRes1(Imagen *piso, Imagen *arbol)
+Imagenes *crearImagenes()
 {
-    ventana.muestraImagenEscalada(0, ventana.altoVentana() - 250, ventana.anchoVentana(), 350, piso);
-    ventana.muestraImagenEscalada(100, ventana.altoVentana() - 570, 150, 350, arbol);
+    Imagenes *imagenes = (Imagenes *)malloc(sizeof(Imagenes));
+
+    if (imagenes == NULL)
+    {
+        printf("Error: No se pudo asignar memoria para la creacion de Imagenes.\n");
+        return NULL;
+    }
+
+    imagenes->arbolImg = ventana.creaImagen("./assets/img/arbol.bmp");
+    imagenes->patoImg = ventana.creaImagenConMascara("./assets/img/pato1.bmp", "./assets/img/patoMascara.bmp");
+    imagenes->scoreImg = ventana.creaImagenConMascara("./assets/img/score.bmp", "./assets/img/scoreMascara.bmp");
+    imagenes->logoImg = ventana.creaImagenConMascara("./assets/img/logo.bmp", "./assets/img/logoMascara.bmp");
+    imagenes->startIcon = ventana.creaImagenConMascara("./assets/img/startIcon.bmp", "./assets/img/startIconMascara.bmp");
+    imagenes->fondoImg = ventana.creaImagen("./assets/img/fondoInicio.bmp");
+    imagenes->marksIcon = ventana.creaImagenConMascara("./assets/img/marcadores.bmp", "./assets/img/marcadoresMascara.bmp");
+    imagenes->backButon = ventana.creaImagenConMascara("./assets/img/backBtn.bmp", "./assets/img/backBtnMascara.bmp");
+    imagenes->pisoImg = ventana.creaImagen("./assets/img/piso.bmp");
+    return imagenes;
 }
 
-void dibujarPato(Imagen *patoImg, Pato *pato)
+void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego)
 {
-    ventana.muestraImagenEscalada(pato->coorX, pato->coorY, pato->ancho, pato->alto, patoImg);
+    int coorStartBtnX = 450 + 10;
+    int coorStartBtnY = 400 - 20;
+    int coorMarksBtnX = (ventana.anchoVentana() / 2) - 80;
+    int coorMarksBtnY = ventana.altoVentana() - 220;
+    int rx, ry;
+
+    if (*estadoJuego == ESTADO_MENU)
+    {
+        ventana.reproducirAudio("./assets/audio/audio.wav");
+    }
+
+    while (*estadoJuego == ESTADO_MENU)
+    {
+        ventana.limpiaVentana();
+        ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoImg);
+        ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 170, ventana.altoVentana() - 740, 350, 350, imagenes->logoImg);
+        ventana.muestraImagenEscalada(coorStartBtnX + 10, coorStartBtnY - 20, 350, 100, imagenes->startIcon);
+        ventana.muestraImagen((ventana.anchoVentana() / 2) - 90, ventana.altoVentana() - 220, imagenes->marksIcon);
+        ventana.raton(&rx, &ry);
+        ventana.actualizaVentana();
+        ventana.espera(10);
+        if (ventana.ratonBotonIzquierdo())
+        {
+            if (rx >= coorStartBtnX &&
+                rx <= (coorStartBtnX + 350) &&
+                ry >= coorStartBtnY &&
+                ry <= (coorStartBtnY + 50))
+            {
+                ventana.reproducirAudio(NULL);
+                ventana.LimpiarEstadoBotonIzquierdo();
+                *estadoJuego = ESTADO_JUGANDO;
+            }
+
+            else if (rx >= coorMarksBtnX &&
+                     rx <= (coorMarksBtnX + 200) &&
+                     ry >= coorMarksBtnY &&
+                     ry <= (coorMarksBtnY + 50))
+            {
+                ventana.reproducirAudio(NULL);
+                ventana.LimpiarEstadoBotonIzquierdo();
+                *estadoJuego = ESTADO_MARCADORES;
+                mostrarMarcadores(estadoJuego, imagenes);
+            }
+        }
+
+        if (ventana.teclaPresionada() == TECLAS.ESCAPE)
+        {
+            ventana.reproducirAudio(NULL);
+            exit(0);
+        }
+    }
+}
+
+void gameLoop(Imagenes *imagenes, Pato *pato, Ronda *ronda)
+{
+    pato->mostrarScore = true;
+    ronda->mostrarRonda = true;
+    dibujarEscenarioRes1(imagenes);
+    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, imagenes->scoreImg);
+
+    if (ronda->rondaContinuar)
+    {
+        vueloPato(pato);
+        dispararPato(pato, ronda, imagenes);
+        estadoPato(pato, ronda);
+    }
+
+    if (ronda->rondaContinuar && pato->estado != 2)
+    {
+        dibujarPato(imagenes, pato);
+    }
+
+    ventana.color(COLORES.BLANCO);
+    if (pato->mostrarScore && ronda->mostrarRonda)
+    {
+        mostrarInformacion(pato, ronda);
+    }
+
+    ventana.color(COLORES.NEGRO);
+    dibujarMira();
+}
+
+void dibujarEscenarioRes1(Imagenes *imagenes)
+{
+    ventana.muestraImagenEscalada(0, ventana.altoVentana() - 250, ventana.anchoVentana(), 350, imagenes->pisoImg);
+    ventana.muestraImagenEscalada(100, ventana.altoVentana() - 570, 150, 350, imagenes->arbolImg);
+}
+
+void dibujarPato(Imagenes *imagenes, Pato *pato)
+{
+    ventana.muestraImagenEscalada(pato->coorX, pato->coorY, pato->ancho, pato->alto, imagenes->patoImg);
 }
 
 void vueloPato(Pato *pato)
@@ -237,7 +327,7 @@ void vueloPato(Pato *pato)
     }
 }
 
-bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, Imagen *scoreImg)
+bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
 {
     int rx, ry;
     bool botonPres = ventana.ratonBotonIzquierdo();
@@ -277,11 +367,11 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
     ry += ajusteY;
     */
 
-    //ventana.reproducirAudio(NULL);
+    // ventana.reproducirAudio(NULL);
 
     if (botonPres && pato->estado == 0)
     {
-        ventana.reproducirAudio("./shot.wav");
+        ventana.reproducirAudio("./assets/audio/shot.wav");
         ventana.LimpiarEstadoBotonIzquierdo();
         if (rx >= pato->coorX &&
             rx <= (pato->coorX + pato->ancho))
@@ -292,16 +382,14 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
                 pato->estado = 1;
                 pato->totalPatos--;
                 ronda->puntaje += 1000;
-                pato->mostrarScore = true;
-                ronda->mostrarRonda = true;
                 if (pato->totalPatos == 0)
                 {
-                    dibujarEscenarioRes1(pisoImg, arbolImg);
-                    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, scoreImg);
+                    dibujarEscenarioRes1(imagenes);
+                    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, imagenes->scoreImg);
                     ventana.color(COLORES.BLANCO);
                     mostrarInformacion(pato, ronda);
                     ventana.actualizaVentana();
-                    ronda->rondaContinuar = ventana.muestraPregunta("Terminaste el juego, felicidades! :D. Continuar?");
+                    ronda->rondaContinuar = ventana.muestraPreguntaParamInt("Ronda %d finalizada! :D. Continuar?", "Aviso", (ronda->totalRonda));
                     if (ronda->rondaContinuar == true)
                     {
                         pato->totalPatos = 10;
@@ -313,33 +401,6 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagen *pisoImg, Imagen *arbolImg, I
             }
         }
     }
-}
-
-void gameLoop(Imagen *patoImg, Imagen *arbolImg, Imagen *pisoImg, Pato *pato, Imagen *scoreImg, Ronda *ronda)
-{
-    dibujarEscenarioRes1(pisoImg, arbolImg);
-    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, scoreImg);
-
-    if (ronda->rondaContinuar)
-    {
-        vueloPato(pato);
-        dispararPato(pato, ronda, pisoImg, arbolImg, scoreImg);
-        estadoPato(patoImg, pato, ronda);
-    }
-
-    if (ronda->rondaContinuar && pato->estado != 2)
-    {
-        dibujarPato(patoImg, pato);
-    }
-
-    ventana.color(COLORES.BLANCO);
-    if (pato->mostrarScore && ronda->mostrarRonda)
-    {
-        mostrarInformacion(pato, ronda);
-    }
-
-    ventana.color(COLORES.NEGRO);
-    dibujarMira();
 }
 
 void dibujarMira()
@@ -360,7 +421,58 @@ void mostrarInformacion(Pato *pato, Ronda *ronda)
     ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
 }
 
-void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
+void iniciarMarcador()
+{
+    FILE *marcadores;
+    marcadores = fopen("marcadores.bin", "wb");
+    if (marcadores == NULL)
+    {
+        printf("No se pudo inicializar el marcador.");
+        exit(1);
+    }
+
+    Puntuacion puntaje[5];
+
+    fclose(marcadores);
+}
+
+void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes)
+{
+    int coorBackBtnX = 0;
+    int coorBackBtnY = 0;
+    int rx, ry;
+    ventana.reproducirAudio("./assets/audio/espera.wav");
+    while (*estadoJuego == ESTADO_MARCADORES)
+    {
+        ventana.limpiaVentana();
+        ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoImg);
+        ventana.muestraImagenEscalada(coorBackBtnX, coorBackBtnY, 100, 100, imagenes->backButon);
+        ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 150, 10, 300, 150, imagenes->marksIcon);
+        ventana.raton(&rx, &ry);
+        ventana.actualizaVentana();
+        ventana.espera(10);
+        if (ventana.ratonBotonIzquierdo())
+        {
+            if (rx >= coorBackBtnX &&
+                rx <= (coorBackBtnX + 100) &&
+                ry >= coorBackBtnY &&
+                ry <= (coorBackBtnY + 100))
+            {
+                ventana.reproducirAudio(NULL);
+                ventana.LimpiarEstadoBotonIzquierdo();
+                *estadoJuego = ESTADO_MENU;
+            }
+        }
+
+        if (ventana.teclaPresionada() == TECLAS.ESCAPE)
+        {
+            ventana.reproducirAudio(NULL);
+            exit(0);
+        }
+    }
+}
+
+void estadoPato(Pato *pato, Ronda *ronda)
 {
     if (pato->estado == 1) // pato cayendo
     {
@@ -369,12 +481,6 @@ void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
         if (pato->coorY >= 350)
         {
             pato->estado = 2; // pato fuera del mapa
-
-            if (pato->totalPatos == 0)
-            {
-                ronda->rondaContinuar = false;
-                ventana.muestraMensaje1("Ya no hay patos!", "GAME OVER");
-            }
         }
     }
     else if (pato->estado == 2)
@@ -388,54 +494,14 @@ void estadoPato(Imagen *patoImg, Pato *pato, Ronda *ronda)
     }
 }
 
-void disparar()
+void liberarImagenes(Imagenes *imagenes)
 {
-    Board *esp32 = connectDevice("COM7", B115200);
-    int rx = 300, ry = 300;
-    float joyX, joyY;
-    int ajusteX, ajusteY;
-    bool btn = ventana.ratonBotonIzquierdo();
-
-    esp32->pinMode(esp32, JX, INPUT);
-    esp32->pinMode(esp32, JY, INPUT);
-    esp32->pinMode(esp32, SW, INPUT_PULLUP);
-    esp32->pinMode(esp32, MOTOR, OUTPUT);
-
-    joyX = esp32->analogRead(esp32, JX);
-    joyY = esp32->analogRead(esp32, JY);
-    btn = esp32->digitalRead(esp32, SW);
-
-    joyX -= AJUSTEX;
-
-    if (joyX >= 0.0)
-        ajusteX = joyX * (10.0 / (1.0 - AJUSTEX));
-    else
-        ajusteX = joyX * (11.0 / (AJUSTEX));
-
-    joyY -= AJUSTEY;
-
-    if (joyY >= 0.0)
-        ajusteY = joyY * (11.0 / (1.0 - AJUSTEY));
-    else
-        ajusteY = joyY * (11.0 / (AJUSTEY));
-
-    rx += ajusteX;
-    ry += ajusteY;
-
-    ventana.color(COLORES.CYAN);
-    ventana.circulo(rx, ry, 20);
-    ventana.linea(rx - 10, ry, rx - 30, ry);
-    ventana.linea(rx + 10, ry, rx + 30, ry);
-    ventana.linea(rx, ry - 10, rx, ry - 30);
-    ventana.linea(rx, ry + 10, rx, ry + 30);
-    ventana.circuloRelleno(rx, ry, 2);
-
-    if (btn)
-    {
-        esp32->digitalWrite(esp32, MOTOR, true);
-    }
-    else
-    {
-        esp32->digitalWrite(esp32, MOTOR, false);
-    }
+    ventana.eliminaImagen(imagenes->arbolImg);
+    ventana.eliminaImagen(imagenes->arbolImg);
+    ventana.eliminaImagen(imagenes->patoImg);
+    ventana.eliminaImagen(imagenes->scoreImg);
+    ventana.eliminaImagen(imagenes->logoImg);
+    ventana.eliminaImagen(imagenes->startIcon);
+    ventana.eliminaImagen(imagenes->fondoImg);
+    ventana.eliminaImagen(imagenes->marksIcon);
 }

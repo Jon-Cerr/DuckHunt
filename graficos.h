@@ -294,6 +294,16 @@ extern const struct Ventana
 	void (*muestraTextoParametroInt)(int x, int y, const char *texto, int tamanioFuente, const char *fuente, const int param);
 
 	/**
+	 * @brief Muestra un cuadro de dialogo de tipo pregunta con un parametro de tipo int
+	 * 
+	 * @param texto El texto del dialogo a mostrar
+	 * @param titulo El titulo del cuadro de dialogo a mostrar
+	 * @param param El valor o variable a mostrar
+	 * @param 
+	 */
+	bool(*muestraPreguntaParamInt)(const char *texto, const char *titulo, const int param);
+
+	/**
 	 * @brief Muestra un dialogo de pregunta.
 	 *
 	 * @param msj Mensaje que se mostrara en el dialogo.
