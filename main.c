@@ -22,7 +22,7 @@
 #define JY 2
 #define SW 4
 #define MOTOR 13
-#define MIN_PUNTUACION 20000
+#define MAX_JUAGDORES 5
 
 #define AJUSTEX 0.45
 #define AJUSTEY 0.35
@@ -67,28 +67,39 @@ typedef struct
     Imagen *fondoImg;
     Imagen *marksIcon;
     Imagen *backButon;
+    Imagen *patoAbatidoImg;
 } Imagenes;
 
 typedef struct
 {
     int puntaje;
+    char nombreJugador[100];
 } Puntuacion;
+
+typedef struct
+{
+    Pato *pato;
+    Puntuacion *puntuacion;
+    Ronda *ronda;
+} Juego;
 
 Pato *crearPato();
 Ronda *crearRonda();
 Imagenes *crearImagenes();
 
-void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego);
-void gameLoop(Imagenes *imagenes, Pato *pato, Ronda *ronda);
+void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego);
+void gameLoop(Imagenes *imagenes, Juego *juego);
 void dibujarEscenarioRes1(Imagenes *imagenes);
 void dibujarPato(Imagenes *imagenes, Pato *pato);
 void vueloPato(Pato *pato);
 bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes);
 void dibujarMira();
 void mostrarInformacion(Pato *pato, Ronda *ronda);
-void iniciarMarcador();
-void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes);
-void estadoPato(Pato *pato, Ronda *ronda);
+void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *juego);
+void estadoPato(Pato *pato, Ronda *ronda, Imagenes *imagenes);
+void inicializarMarcador(Puntuacion puntuaciones[MAX_JUAGDORES]);
+void actualizarMarcador(Puntuacion puntajeActual[], Puntuacion nuevoJugador);
+void ordenamientoBurbuja(Puntuacion puntajeActual[]);
 void liberarImagenes(Imagenes *imagenes);
 
 int main()
@@ -101,17 +112,20 @@ int main()
     Pato *pato = crearPato();
     Ronda *ronda = crearRonda();
     Imagenes *imagenes = crearImagenes();
+    Juego *juego = (Juego *)malloc(sizeof(Juego));
+    juego->pato = pato;
+    juego->ronda = ronda;
     EstadoJuego estadoJuego = ESTADO_MENU;
-
-    Puntuacion puntuacion;
-    puntuacion.puntaje = 0;
+    Puntuacion puntuacion[MAX_JUAGDORES];
+    juego->puntuacion = puntuacion;
+    inicializarMarcador(juego->puntuacion);
 
     FILE *marcadores;
 
     int tecla = ventana.teclaPresionada();
 
     ventana.colorFondo(COLORES.AZULC);
-    iniciarJuego(imagenes, &estadoJuego);
+    iniciarJuego(juego, imagenes, &estadoJuego);
 
     while (tecla != TECLAS.ESCAPE && (ronda->rondaContinuar))
     {
@@ -124,7 +138,7 @@ int main()
 
         if (estadoJuego == ESTADO_JUGANDO)
         {
-            gameLoop(imagenes, pato, ronda);
+            gameLoop(imagenes, juego);
         }
 
         ventana.actualizaVentana(); // Mostramos
@@ -132,14 +146,19 @@ int main()
     }
     if (ronda->rondaContinuar == false)
     {
+        Puntuacion nuevaPuntuacion;
+        nuevaPuntuacion.puntaje = ronda->puntaje;
+        strcpy(nuevaPuntuacion.nombreJugador, "Fin de la ronda");
+        actualizarMarcador(puntuacion, nuevaPuntuacion);
         ventana.limpiaVentana();
-        gameLoop(imagenes, pato, ronda);
+        gameLoop(imagenes, juego);
         ventana.actualizaVentana();
         ventana.muestraMensaje("Hasta luego!");
     }
     ventana.cierraVentana();
     free(pato);
     free(ronda);
+    free(juego);
     liberarImagenes(imagenes);
     return 0;
 }
@@ -204,10 +223,11 @@ Imagenes *crearImagenes()
     imagenes->marksIcon = ventana.creaImagenConMascara("./assets/img/marcadores.bmp", "./assets/img/marcadoresMascara.bmp");
     imagenes->backButon = ventana.creaImagenConMascara("./assets/img/backBtn.bmp", "./assets/img/backBtnMascara.bmp");
     imagenes->pisoImg = ventana.creaImagen("./assets/img/piso.bmp");
+    imagenes->patoAbatidoImg = ventana.creaImagenConMascara("./assets/img/patoAbatido.bmp", "./assets/img/patoAbatidoMascara.bmp");
     return imagenes;
 }
 
-void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego)
+void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
 {
     int coorStartBtnX = 450 + 10;
     int coorStartBtnY = 400 - 20;
@@ -250,7 +270,7 @@ void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego)
                 ventana.reproducirAudio(NULL);
                 ventana.LimpiarEstadoBotonIzquierdo();
                 *estadoJuego = ESTADO_MARCADORES;
-                mostrarMarcadores(estadoJuego, imagenes);
+                mostrarMarcadores(estadoJuego, imagenes, juego);
             }
         }
 
@@ -262,29 +282,29 @@ void iniciarJuego(Imagenes *imagenes, EstadoJuego *estadoJuego)
     }
 }
 
-void gameLoop(Imagenes *imagenes, Pato *pato, Ronda *ronda)
+void gameLoop(Imagenes *imagenes, Juego *juego)
 {
-    pato->mostrarScore = true;
-    ronda->mostrarRonda = true;
+    juego->pato->mostrarScore = true;
+    juego->ronda->mostrarRonda = true;
     dibujarEscenarioRes1(imagenes);
     ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, imagenes->scoreImg);
 
-    if (ronda->rondaContinuar)
+    if (juego->ronda->rondaContinuar)
     {
-        vueloPato(pato);
-        dispararPato(pato, ronda, imagenes);
-        estadoPato(pato, ronda);
+        vueloPato(juego->pato);
+        dispararPato(juego->pato, juego->ronda, imagenes);
+        estadoPato(juego->pato, juego->ronda, imagenes);
     }
 
-    if (ronda->rondaContinuar && pato->estado != 2)
+    if (juego->ronda->rondaContinuar && juego->pato->estado != 2)
     {
-        dibujarPato(imagenes, pato);
+        dibujarPato(imagenes, juego->pato);
     }
 
     ventana.color(COLORES.BLANCO);
-    if (pato->mostrarScore && ronda->mostrarRonda)
+    if (juego->pato->mostrarScore && juego->ronda->mostrarRonda)
     {
-        mostrarInformacion(pato, ronda);
+        mostrarInformacion(juego->pato, juego->ronda);
     }
 
     ventana.color(COLORES.NEGRO);
@@ -299,7 +319,17 @@ void dibujarEscenarioRes1(Imagenes *imagenes)
 
 void dibujarPato(Imagenes *imagenes, Pato *pato)
 {
-    ventana.muestraImagenEscalada(pato->coorX, pato->coorY, pato->ancho, pato->alto, imagenes->patoImg);
+    Imagen *imagenPatoEstado;
+    if (pato->estado == 1)
+    {
+        imagenPatoEstado = imagenes->patoAbatidoImg;
+    }
+    else
+    {
+        imagenPatoEstado = imagenes->patoImg;
+    }
+
+    ventana.muestraImagenEscalada(pato->coorX, pato->coorY, pato->ancho, pato->alto, imagenPatoEstado);
 }
 
 void vueloPato(Pato *pato)
@@ -332,7 +362,6 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
     int rx, ry;
     bool botonPres = ventana.ratonBotonIzquierdo();
     ventana.raton(&rx, &ry);
-
     /*
     Board *esp32 = connectDevice("COM7", B115200);
     int rx = 300, ry = 300;
@@ -366,8 +395,6 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
     rx += ajusteX;
     ry += ajusteY;
     */
-
-    // ventana.reproducirAudio(NULL);
 
     if (botonPres && pato->estado == 0)
     {
@@ -421,22 +448,7 @@ void mostrarInformacion(Pato *pato, Ronda *ronda)
     ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
 }
 
-void iniciarMarcador()
-{
-    FILE *marcadores;
-    marcadores = fopen("marcadores.bin", "wb");
-    if (marcadores == NULL)
-    {
-        printf("No se pudo inicializar el marcador.");
-        exit(1);
-    }
-
-    Puntuacion puntaje[5];
-
-    fclose(marcadores);
-}
-
-void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes)
+void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *juego)
 {
     int coorBackBtnX = 0;
     int coorBackBtnY = 0;
@@ -448,6 +460,34 @@ void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes)
         ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoImg);
         ventana.muestraImagenEscalada(coorBackBtnX, coorBackBtnY, 100, 100, imagenes->backButon);
         ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 150, 10, 300, 150, imagenes->marksIcon);
+        int posY_inicial = 200;
+        int separacionY = 50;
+
+        ventana.color(COLORES.BLANCO);
+
+        ventana.texto1(250, posY_inicial - 50, "POS.", 30, "Arial");
+        ventana.texto1((ventana.anchoVentana() / 2) - 150, posY_inicial - 50, "NOMBRE", 30, "Arial");
+        ventana.texto1((ventana.anchoVentana() / 2) + 150, posY_inicial - 50, "PUNTAJE", 30, "Arial");
+
+        for (int i = 0; i < MAX_JUAGDORES; i++)
+        {
+            ventana.muestraTextoParametroInt(250, posY_inicial + (i * separacionY), "%d.", 30, "Arial", i + 1);
+
+            ventana.texto1(
+                (ventana.anchoVentana() / 2) - 150,
+                posY_inicial + (i * separacionY),
+                juego->puntuacion[i].nombreJugador,
+                30, "Arial");
+
+            ventana.muestraTextoParametroInt(
+                (ventana.anchoVentana() / 2) + 150,
+                posY_inicial + (i * separacionY),
+                "%d",
+                30, "Arial",
+                juego->puntuacion[i].puntaje
+            );
+        }
+        
         ventana.raton(&rx, &ry);
         ventana.actualizaVentana();
         ventana.espera(10);
@@ -472,12 +512,11 @@ void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes)
     }
 }
 
-void estadoPato(Pato *pato, Ronda *ronda)
+void estadoPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
 {
     if (pato->estado == 1) // pato cayendo
     {
         pato->coorY += VELOCIDAD_CAIDA;
-
         if (pato->coorY >= 350)
         {
             pato->estado = 2; // pato fuera del mapa
@@ -486,11 +525,85 @@ void estadoPato(Pato *pato, Ronda *ronda)
     else if (pato->estado == 2)
     {
         int maxCoorX = ventana.anchoVentana() - pato->ancho;
-        pato->coorX = rand() % (maxCoorX + 1);
-        pato->coorY = (rand() % (MAX_Y_APARICION - MIN_Y_APARICION + 1)) + MIN_Y_APARICION;
+        int coorXAleat = rand() % (maxCoorX + 1);
+        int coorYAleat = (rand() % (MAX_Y_APARICION - MIN_Y_APARICION + 1)) + MIN_Y_APARICION;
+        pato->coorX = coorXAleat;
+        pato->coorY = coorYAleat;
         pato->velX = (rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1);
         pato->velY = (rand() % 5) - 2;
         pato->estado = 0;
+    }
+}
+
+void inicializarMarcador(Puntuacion puntuaciones[MAX_JUAGDORES])
+{
+    FILE *archivoMarcador = fopen("marcadores.bin", "rb");
+    if (archivoMarcador != NULL)
+    {
+        fread(puntuaciones, sizeof(Puntuacion), MAX_JUAGDORES, archivoMarcador);
+        fclose(archivoMarcador);
+    }
+    else
+    {
+        for (int i = 0; i < MAX_JUAGDORES; i++)
+        {
+            strcpy(puntuaciones[i].nombreJugador, "---");
+            puntuaciones[i].puntaje = 0;
+        }
+        archivoMarcador = fopen("marcadores.bin", "wb");
+        if (archivoMarcador != NULL)
+        {
+            fwrite(puntuaciones, sizeof(Puntuacion), MAX_JUAGDORES, archivoMarcador);
+            fclose(archivoMarcador);
+        }
+        else
+        {
+            printf("No se pudo guardar el marcador.\n");
+            exit(1);
+        }
+    }
+}
+
+void actualizarMarcador(Puntuacion puntajeActual[], Puntuacion nuevoJugador)
+{
+    if (nuevoJugador.puntaje < puntajeActual[MAX_JUAGDORES - 1].puntaje)
+    {
+        ventana.muestraMensaje1("Booooooo!", "No entraste al top");
+        printf("No entraste al top unu.\n");
+        return;
+    }
+    ventana.muestraMensajeParametroInt("Calificaste! Puntuacion: %d", nuevoJugador.puntaje, "Resultados");
+    printf("Calificaste!\n");
+    puntajeActual[MAX_JUAGDORES - 1] = nuevoJugador;
+    ordenamientoBurbuja(puntajeActual);
+    FILE *archivoMarcador = fopen("marcadores.bin", "wb");
+    if (archivoMarcador != NULL)
+    {
+        fwrite(puntajeActual, sizeof(Puntuacion), MAX_JUAGDORES, archivoMarcador);
+        fclose(archivoMarcador);
+        printf("Marcador actualizado.\n");
+    }
+    else
+    {
+        printf("Error al abrir el marcador.\n");
+    }
+}
+
+void ordenamientoBurbuja(Puntuacion puntajeActual[])
+{
+    Puntuacion aux;
+    // Aplicando el metodo de la burbuja
+    for (int i = 0; i < MAX_JUAGDORES - 1; i++)
+    {
+        for (int j = 0; j < MAX_JUAGDORES - i - 1; j++)
+        {
+            if (puntajeActual[j].puntaje < puntajeActual[j + 1].puntaje)
+            {
+                aux = puntajeActual[j];
+                puntajeActual[j] = puntajeActual[j + 1];
+                puntajeActual[j + 1] = aux;
+            }
+        }
     }
 }
 
@@ -504,4 +617,5 @@ void liberarImagenes(Imagenes *imagenes)
     ventana.eliminaImagen(imagenes->startIcon);
     ventana.eliminaImagen(imagenes->fondoImg);
     ventana.eliminaImagen(imagenes->marksIcon);
+    ventana.eliminaImagen(imagenes->patoAbatidoImg);
 }
