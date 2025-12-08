@@ -82,8 +82,25 @@ typedef struct Juego
     Ronda *ronda;
 } Juego;
 
+/**
+ * @brief Funcion que crea una instancia de un tipo de dato struct pato con todo y sus campos y que retorna el puntero completo a la struct
+ * 
+ * @return Pato* 
+ */
 Pato *crearPato();
+
+/**
+ * @brief Funcion que crea una instancia de un tipo de dato struct ronda con todo y sus campos y que retorna el puntero completo a la struct
+ * 
+ * @return Ronda* 
+ */
 Ronda *crearRonda();
+
+/**
+ * @brief Funcion que crea una instancia de un tipo de dato struct imagenes con todo y sus campos y que retorna el puntero completo a la struct
+ * 
+ * @return Imagenes* 
+ */
 Imagenes *crearImagenes();
 
 /**
@@ -210,9 +227,6 @@ int main()
     Puntuacion puntuacion[MAX_JUAGDORES];
     juego->puntuacion = puntuacion;
     inicializarMarcador(juego->puntuacion);
-
-    FILE *marcadores;
-
     int tecla = ventana.teclaPresionada();
 
     ventana.colorFondo(COLORES.AZULC);
