@@ -27,7 +27,7 @@
 #define AJUSTEX 0.45
 #define AJUSTEY 0.35
 
-typedef struct
+typedef struct Pato
 {
     int coorX;
     int coorY;
@@ -37,10 +37,9 @@ typedef struct
     int velX;
     int velY;
     int totalPatos;
-    bool mostrarScore;
 } Pato;
 
-typedef struct
+typedef struct Ronda
 {
     bool rondaContinuar;
     int puntaje;
@@ -56,12 +55,12 @@ typedef enum
     ESTADO_MARCADORES
 } EstadoJuego;
 
-typedef struct
+typedef struct Imagenes
 {
     Imagen *pisoImg;
     Imagen *arbolImg;
+    Imagen *fondoJuegoImg;
     Imagen *patoImg;
-    Imagen *scoreImg;
     Imagen *logoImg;
     Imagen *startIcon;
     Imagen *fondoImg;
@@ -70,13 +69,13 @@ typedef struct
     Imagen *patoAbatidoImg;
 } Imagenes;
 
-typedef struct
+typedef struct Puntuacion
 {
     int puntaje;
-    char nombreJugador[100];
+    int nombreJugador;
 } Puntuacion;
 
-typedef struct
+typedef struct Juego
 {
     Pato *pato;
     Puntuacion *puntuacion;
@@ -87,19 +86,111 @@ Pato *crearPato();
 Ronda *crearRonda();
 Imagenes *crearImagenes();
 
+/**
+ * @brief Funcion que inicia el juego en estado menu, tiene dos opciones: iniciar juego y ver marcadores. Dibuja el logo y los botones, ademas de reproducir audio
+ * @param juego Puntero a la struct Juego que contiene puntero a las stucts Pato, Ronda y Puntuacion
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ * @param estadoJuego Puntero a la enumeracion EstadoJuego que maneja los estaaos del juego: menu, inicio y fin
+ */
 void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego);
+
+/**
+ * @brief Funcion que ejecuta el ciclo del juego, internamente dibuja el estado del pato, las imagenes, asi como la puntuacion, ronda y patos restantes.
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ * @param juego Puntero a la struct Juego que contiene puntero a las stucts Pato, Ronda y Puntuacion
+ */
 void gameLoop(Imagenes *imagenes, Juego *juego);
+
+/**
+ * @brief Funcion encargada de dibujar el escenario
+ *
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ */
 void dibujarEscenarioRes1(Imagenes *imagenes);
+
+/**
+ * @brief Funcion que se encarga de dibujar al pato en pantalla a corde al estado del mismo
+ *
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ * @param pato Puntero a la struct pato que contiene las caracteristicas de un pato
+ */
 void dibujarPato(Imagenes *imagenes, Pato *pato);
+
+/**
+ * @brief Funcion encargada de dibuajr al pato en pantalla, asignandole coordenadas y velocidades si se cumplen ciertos criterios
+ *
+ * @param pato Puntero a la struct pato que contiene las caracteristicas de un pato
+ */
 void vueloPato(Pato *pato);
-bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes);
+
+/**
+ * @brief Funcion encargada de ejecutar la logica de disparo hacia el pato, las coordenadas del mouse y click izquierdo para disparar
+ *
+ * @param juego Puntero a la struct Juego que contiene las structs Pato y Ronda
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ * @return true si el jugador acepta otra ronda
+ * @return false Si el pato no fue disparado
+ */
+bool dispararPato(Juego *juego, Imagenes *imagenes);
+
+/**
+ * @brief Dibuja una mira en la  pantalla acorde a las coordenadas del mouse
+ *
+ */
 void dibujarMira();
-void mostrarInformacion(Pato *pato, Ronda *ronda);
+
+/**
+ * @brief Nuestra la informacion de puntaje, totalRonda y totalPatos en la ventana
+ *
+ * @param pato Puntero a la struct Pato que contiene las caracteristicas de un pato
+ * @param ronda Puntero a la struct Ronda que contiene la informacion de la ronda
+ */
+void mostrarInformacion(Juego *juego);
+
+/**
+ * @brief Funcion que dibuja en pantalla el esatdo marcadores, es decir, el apartado de puntuacion. Dibuja un boton, icono y el puntaje tomado de un archivo binario, con musica de fondo.
+ *
+ * @param estadoJuego Puntero a la enum EstadoJuego que contiene los estados del juego
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ * @param juego Puntero a la struct Juego que contiene puntero a las stucts Pato, Ronda y Puntuacion
+ */
 void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *juego);
-void estadoPato(Pato *pato, Ronda *ronda, Imagenes *imagenes);
+
+/**
+ * @brief Funcion que trabaja la logica del estado del pato, si se encuntra cayendo (1), si esta fuera del mapa (2), y si el pato esta fuera del mapa, dibuja uno nuevo en coordenadas aleatorias y velocidad aleatoria
+ *
+ * @param Juego Puntero a la struct Juego que contiene las estructuras Pato y Ronda
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ */
+void estadoPato(Juego *juego, Imagenes *imagenes);
+
+/**
+ * @brief Funcion que inicializa un nuevo archivo binario para la insercion de informacion del puntaje, si ya exist, se lee el contenido en modo rb, si no existe, se crea el contenido en modo wb.
+ *
+ * @param puntuaciones Puntero a la struct Puntuaciones que almacena un array de 5 elementos de la misma struct
+ */
 void inicializarMarcador(Puntuacion puntuaciones[MAX_JUAGDORES]);
+
+/**
+ * @brief Funcion que actualiza el marcador acorde al puntaje obtenido al final de la ronda, si no se cumple el puntaje minimo (comparacion en todo el puntaje) el jugador no califica, caso contrario se carga su puntaje en el archivo binario y se ordena la informacion con la funcion ordenamientoBurbuja()
+ *
+ * @param puntajeActual Puntero a la struct Puntaje que accede al puntaje actual de la ronda
+ * @param nuevoJugador Tipo de dato Puntuacion que accede al nombre del jugador
+ */
 void actualizarMarcador(Puntuacion puntajeActual[], Puntuacion nuevoJugador);
+
+/**
+ * @brief Funcion que ordena el puntaje de mayor a menjor para la insercion de un nuevo puntaje, metodo de burbuja
+ *
+ * @param puntajeActual Puntero a la struct Puntuacion que contiene el puntaje actual de la ejecucion del juego
+ */
 void ordenamientoBurbuja(Puntuacion puntajeActual[]);
+
+/**
+ * @brief Funcion que libera de la memoria las imagenes creadas durante todo el juego
+ *
+ * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
+ */
 void liberarImagenes(Imagenes *imagenes);
 
 int main()
@@ -147,13 +238,12 @@ int main()
     if (ronda->rondaContinuar == false)
     {
         Puntuacion nuevaPuntuacion;
+        nuevaPuntuacion.nombreJugador = ronda->totalRonda;
         nuevaPuntuacion.puntaje = ronda->puntaje;
-        strcpy(nuevaPuntuacion.nombreJugador, "Fin de la ronda");
         actualizarMarcador(puntuacion, nuevaPuntuacion);
         ventana.limpiaVentana();
         gameLoop(imagenes, juego);
         ventana.actualizaVentana();
-        ventana.muestraMensaje("Hasta luego!");
     }
     ventana.cierraVentana();
     free(pato);
@@ -182,7 +272,6 @@ Pato *crearPato()
     pato->velX = 5;
     pato->velY = -3;
     pato->totalPatos = 10;
-    pato->mostrarScore = false;
 
     return pato;
 }
@@ -216,10 +305,10 @@ Imagenes *crearImagenes()
 
     imagenes->arbolImg = ventana.creaImagen("./assets/img/arbol.bmp");
     imagenes->patoImg = ventana.creaImagenConMascara("./assets/img/pato1.bmp", "./assets/img/patoMascara.bmp");
-    imagenes->scoreImg = ventana.creaImagenConMascara("./assets/img/score.bmp", "./assets/img/scoreMascara.bmp");
+    imagenes->fondoJuegoImg = ventana.creaImagen("./assets/img/fondoJuego.bmp");
     imagenes->logoImg = ventana.creaImagenConMascara("./assets/img/logo.bmp", "./assets/img/logoMascara.bmp");
     imagenes->startIcon = ventana.creaImagenConMascara("./assets/img/startIcon.bmp", "./assets/img/startIconMascara.bmp");
-    imagenes->fondoImg = ventana.creaImagen("./assets/img/fondoInicio.bmp");
+    imagenes->fondoImg = ventana.creaImagen("./assets/img/fondoI.bmp");
     imagenes->marksIcon = ventana.creaImagenConMascara("./assets/img/marcadores.bmp", "./assets/img/marcadoresMascara.bmp");
     imagenes->backButon = ventana.creaImagenConMascara("./assets/img/backBtn.bmp", "./assets/img/backBtnMascara.bmp");
     imagenes->pisoImg = ventana.creaImagen("./assets/img/piso.bmp");
@@ -244,9 +333,9 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
     {
         ventana.limpiaVentana();
         ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoImg);
-        ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 170, ventana.altoVentana() - 740, 350, 350, imagenes->logoImg);
+        ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 190, ventana.altoVentana() - 740, 400, 400, imagenes->logoImg);
         ventana.muestraImagenEscalada(coorStartBtnX + 10, coorStartBtnY - 20, 350, 100, imagenes->startIcon);
-        ventana.muestraImagen((ventana.anchoVentana() / 2) - 90, ventana.altoVentana() - 220, imagenes->marksIcon);
+        ventana.muestraImagenEscalada((ventana.anchoVentana() / 2) - 90, ventana.altoVentana() - 220, 200, 50, imagenes->marksIcon);
         ventana.raton(&rx, &ry);
         ventana.actualizaVentana();
         ventana.espera(10);
@@ -284,16 +373,14 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
 
 void gameLoop(Imagenes *imagenes, Juego *juego)
 {
-    juego->pato->mostrarScore = true;
     juego->ronda->mostrarRonda = true;
     dibujarEscenarioRes1(imagenes);
-    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, imagenes->scoreImg);
 
     if (juego->ronda->rondaContinuar)
     {
         vueloPato(juego->pato);
-        dispararPato(juego->pato, juego->ronda, imagenes);
-        estadoPato(juego->pato, juego->ronda, imagenes);
+        dispararPato(juego, imagenes);
+        estadoPato(juego, imagenes);
     }
 
     if (juego->ronda->rondaContinuar && juego->pato->estado != 2)
@@ -302,9 +389,9 @@ void gameLoop(Imagenes *imagenes, Juego *juego)
     }
 
     ventana.color(COLORES.BLANCO);
-    if (juego->pato->mostrarScore && juego->ronda->mostrarRonda)
+    if (juego->ronda->mostrarRonda)
     {
-        mostrarInformacion(juego->pato, juego->ronda);
+        mostrarInformacion(juego);
     }
 
     ventana.color(COLORES.NEGRO);
@@ -313,8 +400,11 @@ void gameLoop(Imagenes *imagenes, Juego *juego)
 
 void dibujarEscenarioRes1(Imagenes *imagenes)
 {
+    /*
     ventana.muestraImagenEscalada(0, ventana.altoVentana() - 250, ventana.anchoVentana(), 350, imagenes->pisoImg);
     ventana.muestraImagenEscalada(100, ventana.altoVentana() - 570, 150, 350, imagenes->arbolImg);
+    */
+    ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoJuegoImg);
 }
 
 void dibujarPato(Imagenes *imagenes, Pato *pato)
@@ -350,14 +440,14 @@ void vueloPato(Pato *pato)
         pato->velX *= -1;
     }
 
-    if (pato->coorY >= (ventana.altoVentana() - 300) && pato->estado == 0)
+    if (pato->coorY >= (ventana.altoVentana() - 200) && pato->estado == 0)
     {
         pato->estado = 2;
         pato->totalPatos--;
     }
 }
 
-bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
+bool dispararPato(Juego *juego, Imagenes *imagenes)
 {
     int rx, ry;
     bool botonPres = ventana.ratonBotonIzquierdo();
@@ -396,32 +486,33 @@ bool dispararPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
     ry += ajusteY;
     */
 
-    if (botonPres && pato->estado == 0)
+    if (botonPres && juego->pato->estado == 0)
     {
         ventana.reproducirAudio("./assets/audio/shot.wav");
         ventana.LimpiarEstadoBotonIzquierdo();
-        if (rx >= pato->coorX &&
-            rx <= (pato->coorX + pato->ancho))
+        if (rx >= juego->pato->coorX &&
+            rx <= (juego->pato->coorX + juego->pato->ancho))
         {
-            if (ry >= pato->coorY &&
-                ry <= (pato->coorY + pato->alto))
+            if (ry >= juego->pato->coorY &&
+                ry <= (juego->pato->coorY + juego->pato->alto))
             {
-                pato->estado = 1;
-                pato->totalPatos--;
-                ronda->puntaje += 1000;
-                if (pato->totalPatos == 0)
+                juego->pato->estado = 1;
+                juego->pato->totalPatos--;
+                juego->ronda->puntaje += 1000;
+                if (juego->pato->totalPatos == 0)
                 {
                     dibujarEscenarioRes1(imagenes);
-                    ventana.muestraImagenEscalada(150, ventana.altoVentana() - 200, 50, 50, imagenes->scoreImg);
                     ventana.color(COLORES.BLANCO);
-                    mostrarInformacion(pato, ronda);
+                    mostrarInformacion(juego);
                     ventana.actualizaVentana();
-                    ronda->rondaContinuar = ventana.muestraPreguntaParamInt("Ronda %d finalizada! :D. Continuar?", "Aviso", (ronda->totalRonda));
-                    if (ronda->rondaContinuar == true)
+                    juego->ronda->rondaContinuar = ventana.muestraPreguntaParamInt("Ronda %d finalizada! :D. Continuar?", "Aviso", (juego->ronda->totalRonda));
+                    if (juego->ronda->rondaContinuar == true)
                     {
-                        pato->totalPatos = 10;
-                        pato->estado = 2;
-                        ronda->totalRonda++;
+                        juego->pato->totalPatos = 10;
+                        juego->pato->estado = 2;
+                        juego->ronda->totalRonda++;
+                        juego->pato->velX = ((rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1)) * 10;
+                        juego->pato->velY = ((rand() % 5) - 2) * 10;
                     }
                 }
                 return false;
@@ -441,11 +532,11 @@ void dibujarMira()
     ventana.circuloRelleno(rx, ry, 2);
 }
 
-void mostrarInformacion(Pato *pato, Ronda *ronda)
+void mostrarInformacion(Juego *juego)
 {
-    ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (ronda->puntaje));
-    ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (ronda->totalRonda));
-    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (pato->totalPatos));
+    ventana.muestraTextoParametroInt(100, 600, "Puntaje: %d", 30, "Arial", (juego->ronda->puntaje));
+    ventana.muestraTextoParametroInt(ventana.anchoVentana() - 200, 600, "Ronda: %d", 30, "Arial", (juego->ronda->totalRonda));
+    ventana.muestraTextoParametroInt(((ventana.anchoVentana() / 2) - 100), 600, "Patos restantes: %d", 30, "Arial", (juego->pato->totalPatos));
 }
 
 void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *juego)
@@ -463,31 +554,31 @@ void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *jueg
         int posY_inicial = 200;
         int separacionY = 50;
 
-        ventana.color(COLORES.BLANCO);
+        ventana.color(COLORES.NEGRO);
 
-        ventana.texto1(250, posY_inicial - 50, "POS.", 30, "Arial");
-        ventana.texto1((ventana.anchoVentana() / 2) - 150, posY_inicial - 50, "NOMBRE", 30, "Arial");
+        ventana.texto2(250, posY_inicial - 50, "POS.", 30, "Arial", false, true, false);
+        ventana.texto1((ventana.anchoVentana() / 2) - 150, posY_inicial - 50, "RONDA(S)", 30, "Arial");
         ventana.texto1((ventana.anchoVentana() / 2) + 150, posY_inicial - 50, "PUNTAJE", 30, "Arial");
 
         for (int i = 0; i < MAX_JUAGDORES; i++)
         {
             ventana.muestraTextoParametroInt(250, posY_inicial + (i * separacionY), "%d.", 30, "Arial", i + 1);
 
-            ventana.texto1(
+            ventana.muestraTextoParametroInt(
                 (ventana.anchoVentana() / 2) - 150,
                 posY_inicial + (i * separacionY),
-                juego->puntuacion[i].nombreJugador,
-                30, "Arial");
+                "%d",
+                30, "Arial",
+                juego->puntuacion[i].nombreJugador);
 
             ventana.muestraTextoParametroInt(
                 (ventana.anchoVentana() / 2) + 150,
                 posY_inicial + (i * separacionY),
                 "%d",
                 30, "Arial",
-                juego->puntuacion[i].puntaje
-            );
+                juego->puntuacion[i].puntaje);
         }
-        
+
         ventana.raton(&rx, &ry);
         ventana.actualizaVentana();
         ventana.espera(10);
@@ -512,26 +603,26 @@ void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *jueg
     }
 }
 
-void estadoPato(Pato *pato, Ronda *ronda, Imagenes *imagenes)
+void estadoPato(Juego *juego, Imagenes *imagenes)
 {
-    if (pato->estado == 1) // pato cayendo
+    if (juego->pato->estado == 1) // pato cayendo
     {
-        pato->coorY += VELOCIDAD_CAIDA;
-        if (pato->coorY >= 350)
+        juego->pato->coorY += VELOCIDAD_CAIDA;
+        if (juego->pato->coorY >= 400)
         {
-            pato->estado = 2; // pato fuera del mapa
+            juego->pato->estado = 2; // pato fuera del mapa
         }
     }
-    else if (pato->estado == 2)
+    else if (juego->pato->estado == 2)
     {
-        int maxCoorX = ventana.anchoVentana() - pato->ancho;
+        int maxCoorX = ventana.anchoVentana() - juego->pato->ancho;
         int coorXAleat = rand() % (maxCoorX + 1);
         int coorYAleat = (rand() % (MAX_Y_APARICION - MIN_Y_APARICION + 1)) + MIN_Y_APARICION;
-        pato->coorX = coorXAleat;
-        pato->coorY = coorYAleat;
-        pato->velX = (rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1);
-        pato->velY = (rand() % 5) - 2;
-        pato->estado = 0;
+        juego->pato->coorX = coorXAleat;
+        juego->pato->coorY = coorYAleat;
+        juego->pato->velX = (rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1);
+        juego->pato->velY = (rand() % 5) - 2;
+        juego->pato->estado = 0;
     }
 }
 
@@ -547,7 +638,7 @@ void inicializarMarcador(Puntuacion puntuaciones[MAX_JUAGDORES])
     {
         for (int i = 0; i < MAX_JUAGDORES; i++)
         {
-            strcpy(puntuaciones[i].nombreJugador, "---");
+            puntuaciones[i].nombreJugador = 0;
             puntuaciones[i].puntaje = 0;
         }
         archivoMarcador = fopen("marcadores.bin", "wb");
@@ -612,7 +703,6 @@ void liberarImagenes(Imagenes *imagenes)
     ventana.eliminaImagen(imagenes->arbolImg);
     ventana.eliminaImagen(imagenes->arbolImg);
     ventana.eliminaImagen(imagenes->patoImg);
-    ventana.eliminaImagen(imagenes->scoreImg);
     ventana.eliminaImagen(imagenes->logoImg);
     ventana.eliminaImagen(imagenes->startIcon);
     ventana.eliminaImagen(imagenes->fondoImg);
