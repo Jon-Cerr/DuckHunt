@@ -14,6 +14,7 @@ typedef struct Pato
     int velX;
     int velY;
     int duracionImpacto;
+    int duracionVibracion;
     int totalPatos;
 } Pato;
 
@@ -47,7 +48,7 @@ void vueloPato(Pato *pato);
  * @return true si el jugador acepta otra ronda
  * @return false Si el pato no fue disparado
  */
-bool dispararPato(Juego *juego, Imagenes *imagenes);
+bool dispararPato(Juego *juego, Imagenes *imagenes, float joyX, float joyY, bool btn, Board *esp32);
 
 /**
  * @brief Funcion que trabaja la logica del estado del pato, si se encuntra cayendo (1), si esta fuera del mapa (2), y si el pato esta fuera del mapa, dibuja uno nuevo en coordenadas aleatorias y velocidad aleatoria
@@ -56,5 +57,7 @@ bool dispararPato(Juego *juego, Imagenes *imagenes);
  * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
  */
 void estadoPato(Juego *juego, Imagenes *imagenes);
+
+int dibujarMira(int rx, int ry);
 
 #endif

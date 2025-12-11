@@ -5,6 +5,12 @@
 #define VELOCIDAD_CAIDA 8
 #define MIN_Y_APARICION 50
 #define MAX_Y_APARICION 300
+#define AJUSTEX 0.45
+#define AJUSTEY 0.3
+#define JX 15
+#define JY 4
+#define SW 18
+#define MOTOR 19
 
 void dibujarPato(Imagenes *imagenes, Pato *pato)
 {
@@ -87,54 +93,60 @@ void estadoPato(Juego *juego, Imagenes *imagenes)
     }
 }
 
-bool dispararPato(Juego *juego, Imagenes *imagenes)
+bool dispararPato(Juego *juego, Imagenes *imagenes, float joyX, float joyY, bool btn, Board *esp32)
 {
-    int rx, ry;
-    bool botonPres = ventana.ratonBotonIzquierdo();
-    ventana.raton(&rx, &ry);
-    /*
-    Board *esp32 = connectDevice("COM7", B115200);
-    int rx = 300, ry = 300;
-    float joyX, joyY;
     int ajusteX, ajusteY;
-    bool btn = ventana.ratonBotonIzquierdo();
-
-    esp32->pinMode(esp32, JX, INPUT);
-    esp32->pinMode(esp32, JY, INPUT);
-    esp32->pinMode(esp32, SW, INPUT_PULLUP);
-    esp32->pinMode(esp32, MOTOR, OUTPUT);
-
-    joyX = esp32->analogRead(esp32, JX);
-    joyY = esp32->analogRead(esp32, JY);
-    btn = esp32->digitalRead(esp32, SW);
 
     joyX -= AJUSTEX;
 
     if (joyX >= 0.0)
-        ajusteX = joyX * (10.0 / (1.0 - AJUSTEX));
+        ajusteX = joyX * (9.0 / (1.0 - AJUSTEX));
     else
-        ajusteX = joyX * (11.0 / (AJUSTEX));
+        ajusteX = joyX * (9.0 / (AJUSTEX));
 
     joyY -= AJUSTEY;
 
     if (joyY >= 0.0)
-        ajusteY = joyY * (11.0 / (1.0 - AJUSTEY));
+        ajusteY = joyY * (9.0 / (1.0 - AJUSTEY));
     else
-        ajusteY = joyY * (11.0 / (AJUSTEY));
+        ajusteY = joyY * (9.0 / (AJUSTEY));
 
-    rx += ajusteX;
-    ry += ajusteY;
-    */
+    juego->miraX += ajusteX;
+    juego->miraY += ajusteY;
 
-    if (botonPres && juego->pato->estado == 0)
+    if (juego->miraX < 0)
+    {
+        juego->miraX = 0;
+    }
+    else if (juego->miraX > ventana.anchoVentana())
+    {
+        juego->miraX = ventana.anchoVentana();
+        ;
+    }
+
+    if (juego->miraY < 0)
+    {
+        juego->miraY = 0;
+    }
+    else if (juego->miraY > ventana.altoVentana())
+    {
+        juego->miraY = ventana.altoVentana();
+        ;
+    }
+
+    ventana.color(COLORES.NEGRO);
+    dibujarMira(juego->miraX, juego->miraY);
+
+    if (btn && juego->pato->estado == 0)
     {
         ventana.reproducirAudio("./assets/audio/shot.wav");
-        ventana.LimpiarEstadoBotonIzquierdo();
-        if (rx >= juego->pato->coorX &&
-            rx <= (juego->pato->coorX + juego->pato->ancho))
+        esp32->digitalWrite(esp32, MOTOR, true);
+        juego->pato->duracionVibracion = 4;
+        if (juego->miraX >= juego->pato->coorX &&
+            juego->miraX <= (juego->pato->coorX + juego->pato->ancho))
         {
-            if (ry >= juego->pato->coorY &&
-                ry <= (juego->pato->coorY + juego->pato->alto))
+            if (juego->miraY >= juego->pato->coorY &&
+                juego->miraY <= (juego->pato->coorY + juego->pato->alto))
             {
                 juego->pato->estado = 1;
                 juego->pato->duracionImpacto = 30;
@@ -152,12 +164,22 @@ bool dispararPato(Juego *juego, Imagenes *imagenes)
                         juego->pato->totalPatos = 10;
                         juego->pato->estado = 2;
                         juego->ronda->totalRonda++;
-                        juego->pato->velX = ((rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1)) * 10;
-                        juego->pato->velY = ((rand() % 5) - 2) * 10;
+                        juego->pato->velX = ((rand() % 5 + 4) * ((rand() % 2 == 0) ? 1 : -1));
+                        juego->pato->velY = ((rand() % 5) - 2);
                     }
                 }
                 return false;
             }
         }
     }
+}
+
+int dibujarMira(int rx, int ry)
+{
+    ventana.circulo(rx, ry, 20);
+    ventana.linea(rx - 10, ry, rx - 30, ry);
+    ventana.linea(rx + 10, ry, rx + 30, ry);
+    ventana.linea(rx, ry - 10, rx, ry - 30);
+    ventana.linea(rx, ry + 10, rx, ry + 30);
+    ventana.circuloRelleno(rx, ry, 2);
 }

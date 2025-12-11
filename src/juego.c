@@ -3,6 +3,12 @@
 #include "imagenes.h"
 #include "pato.h"
 #include "marcadores.h"
+#include "simplecontroller.h"
+
+#define JX 15
+#define JY 4
+#define SW 18
+#define MOTOR 19
 
 void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
 {
@@ -59,15 +65,33 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
     }
 }
 
-void gameLoop(Imagenes *imagenes, Juego *juego)
+void gameLoop(Imagenes *imagenes, Juego *juego, Board *esp32)
 {
     juego->ronda->mostrarRonda = true;
     dibujarEscenarioRes1(imagenes);
 
     if (juego->ronda->rondaContinuar)
     {
+        float joyX = 0.0, joyY = 0.0;
+        bool btn = false;
+        if (esp32 != NULL)
+        {
+            joyX = esp32->analogRead(esp32, JX);
+            joyY = esp32->analogRead(esp32, JY);
+            btn = !esp32->digitalRead(esp32, SW);
+        }
         vueloPato(juego->pato);
-        dispararPato(juego, imagenes);
+        dispararPato(juego, imagenes, joyX, joyY, btn, esp32);
+        if (juego->pato->duracionVibracion > 0)
+        {
+            juego->pato->duracionVibracion--;
+            if (juego->pato->duracionVibracion == 0)
+            {
+                esp32->digitalWrite(esp32, MOTOR, false);
+            }
+            
+        }
+        
         estadoPato(juego, imagenes);
     }
 
@@ -83,7 +107,7 @@ void gameLoop(Imagenes *imagenes, Juego *juego)
     }
 
     ventana.color(COLORES.NEGRO);
-    dibujarMira();
+    // dibujarMira();
 }
 
 void dibujarEscenarioRes1(Imagenes *imagenes)
@@ -93,17 +117,6 @@ void dibujarEscenarioRes1(Imagenes *imagenes)
     ventana.muestraImagenEscalada(100, ventana.altoVentana() - 570, 150, 350, imagenes->arbolImg);
     */
     ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoJuegoImg);
-}
-
-void dibujarMira()
-{
-    int rx = ventana.ratonX(), ry = ventana.ratonY();
-    ventana.circulo(rx, ry, 20);
-    ventana.linea(rx - 10, ry, rx - 30, ry);
-    ventana.linea(rx + 10, ry, rx + 30, ry);
-    ventana.linea(rx, ry - 10, rx, ry - 30);
-    ventana.linea(rx, ry + 10, rx, ry + 30);
-    ventana.circuloRelleno(rx, ry, 2);
 }
 
 void mostrarInformacion(Juego *juego)

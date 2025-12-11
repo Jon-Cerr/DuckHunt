@@ -2,6 +2,7 @@
 #define JUEGO_H_
 
 #include "imagenes.h"
+#include "simplecontroller.h"
 typedef struct Pato Pato;
 typedef struct Puntuacion Puntuacion;
 
@@ -32,7 +33,13 @@ typedef struct Juego
     Pato *pato;
     Puntuacion *puntuacion;
     Ronda *ronda;
+    int miraX;
+    int miraY;
 } Juego;
+
+typedef struct Control {
+
+} Control;
 
 /**
  * @brief Funcion que crea una instancia de un tipo de dato struct ronda con todo y sus campos y que retorna el puntero completo a la struct
@@ -54,7 +61,7 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego);
  * @param imagenes Puntero a la struct Imagenes que contiene las direcciones de imagenes a dibujar
  * @param juego Puntero a la struct Juego que contiene puntero a las stucts Pato, Ronda y Puntuacion
  */
-void gameLoop(Imagenes *imagenes, Juego *juego);
+void gameLoop(Imagenes *imagenes, Juego *juego, Board *esp32);
 
 /**
  * @brief Funcion encargada de dibujar el escenario
@@ -63,11 +70,6 @@ void gameLoop(Imagenes *imagenes, Juego *juego);
  */
 void dibujarEscenarioRes1(Imagenes *imagenes);
 
-/**
- * @brief Dibuja una mira en la  pantalla acorde a las coordenadas del mouse
- *
- */
-void dibujarMira();
 
 /**
  * @brief Nuestra la informacion de puntaje, totalRonda y totalPatos en la ventana

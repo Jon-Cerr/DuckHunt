@@ -19,15 +19,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+
 #define JX 15
-#define JY 2
-#define SW 4
-#define MOTOR 13
-#define MAX_JUAGDORES 5
+#define JY 4
+#define SW 18
+#define MOTOR 19
 
 #define AJUSTEX 0.45
 #define AJUSTEY 0.35
 
+#define MAX_JUAGDORES 5
 /**
  * @brief Funcion que libera de la memoria las imagenes creadas durante todo el juego
  *
@@ -55,6 +56,28 @@ int main()
     int tecla = ventana.teclaPresionada();
 
     ventana.colorFondo(COLORES.AZULC);
+
+    Board *esp32 = connectDevice("COM3", B115200);
+
+    if (esp32 != NULL)
+    {
+        esp32->pinMode(esp32, JX, INPUT);
+        esp32->pinMode(esp32, JY, INPUT);
+        esp32->pinMode(esp32, SW, INPUT_PULLUP);
+        esp32->pinMode(esp32, MOTOR, OUTPUT);
+        esp32->analogRead(esp32, JX);
+        esp32->analogRead(esp32, JY);
+        esp32->digitalRead(esp32, SW);
+        ventana.espera(10);
+    }
+    else
+    {
+        ventana.muestraMensaje("Error al conectar con el ESP32. Verifique si el control esta conectado.");
+    }
+
+    juego->miraX = ventana.anchoVentana() / 2;
+    juego->miraY = ventana.altoVentana() / 2;
+
     iniciarJuego(juego, imagenes, &estadoJuego);
 
     while (tecla != TECLAS.ESCAPE && (ronda->rondaContinuar))
@@ -68,11 +91,11 @@ int main()
 
         if (estadoJuego == ESTADO_JUGANDO)
         {
-            gameLoop(imagenes, juego);
+            gameLoop(imagenes, juego, esp32);
         }
 
         ventana.actualizaVentana(); // Mostramos
-        ventana.espera(10);
+        ventana.espera(15);
     }
     if (ronda->rondaContinuar == false)
     {
@@ -81,7 +104,7 @@ int main()
         nuevaPuntuacion.puntaje = ronda->puntaje;
         actualizarMarcador(puntuacion, nuevaPuntuacion);
         ventana.limpiaVentana();
-        gameLoop(imagenes, juego);
+        gameLoop(imagenes, juego, esp32);
         ventana.actualizaVentana();
     }
     ventana.cierraVentana();
@@ -108,9 +131,10 @@ Pato *crearPato()
     pato->estado = 0;
     pato->ancho = 100;
     pato->alto = 100;
-    pato->velX = 5;
+    pato->velX = 3;
     pato->velY = -3;
     pato->totalPatos = 10;
+    pato->duracionVibracion = 0;
 
     return pato;
 }
