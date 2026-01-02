@@ -1,3 +1,13 @@
+/**
+ * @file juego.h
+ * @author Alan Jonathan Cerritos Hernandez (alanchdez147@gmail.com) - 2026640080
+ * @author Ricardo Chaparro Zarco (ricardochzarco@gmail.com) - 2026640302
+ * @author Jesus Roque Lopez (jesusroquelopez22@gmail.com) - 2026640210
+ * @brief Archivo de declaraciones de funciones, structs y enums para juego
+ * @version 0.1
+ * @date 2025-12-04
+ * Practica 9: Manejo de Puerto Serie
+ */
 #ifndef JUEGO_H_
 #define JUEGO_H_
 
@@ -36,10 +46,6 @@ typedef struct Juego
     int miraX;
     int miraY;
 } Juego;
-
-typedef struct Control {
-
-} Control;
 
 /**
  * @brief Funcion que crea una instancia de un tipo de dato struct ronda con todo y sus campos y que retorna el puntero completo a la struct

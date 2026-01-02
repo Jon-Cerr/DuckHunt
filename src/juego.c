@@ -1,3 +1,13 @@
+/**
+ * @file juego.c
+ * @author Alan Jonathan Cerritos Hernandez (alanchdez147@gmail.com) - 2026640080
+ * @author Ricardo Chaparro Zarco (ricardochzarco@gmail.com) - 2026640302
+ * @author Jesus Roque Lopez (jesusroquelopez22@gmail.com) - 2026640210
+ * @brief Archivo de definiciones para juego.c
+ * @version 0.1
+ * @date 2025-12-04
+ * Practica 9: Manejo de Puerto Serie
+ */
 #include "graficos.h"
 #include "juego.h"
 #include "imagenes.h"
@@ -44,7 +54,6 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
                 ventana.LimpiarEstadoBotonIzquierdo();
                 *estadoJuego = ESTADO_JUGANDO;
             }
-
             else if (rx >= coorMarksBtnX &&
                      rx <= (coorMarksBtnX + 200) &&
                      ry >= coorMarksBtnY &&
@@ -56,7 +65,6 @@ void iniciarJuego(Juego *juego, Imagenes *imagenes, EstadoJuego *estadoJuego)
                 mostrarMarcadores(estadoJuego, imagenes, juego);
             }
         }
-
         if (ventana.teclaPresionada() == TECLAS.ESCAPE)
         {
             ventana.reproducirAudio(NULL);
@@ -91,31 +99,22 @@ void gameLoop(Imagenes *imagenes, Juego *juego, Board *esp32)
             }
             
         }
-        
         estadoPato(juego, imagenes);
     }
-
     if (juego->ronda->rondaContinuar && juego->pato->estado != 3)
     {
         dibujarPato(imagenes, juego->pato);
     }
-
     ventana.color(COLORES.BLANCO);
     if (juego->ronda->mostrarRonda)
     {
         mostrarInformacion(juego);
     }
-
     ventana.color(COLORES.NEGRO);
-    // dibujarMira();
 }
 
 void dibujarEscenarioRes1(Imagenes *imagenes)
 {
-    /*
-    ventana.muestraImagenEscalada(0, ventana.altoVentana() - 250, ventana.anchoVentana(), 350, imagenes->pisoImg);
-    ventana.muestraImagenEscalada(100, ventana.altoVentana() - 570, 150, 350, imagenes->arbolImg);
-    */
     ventana.muestraImagenEscalada(0, 0, ventana.anchoVentana(), ventana.altoVentana(), imagenes->fondoJuegoImg);
 }
 

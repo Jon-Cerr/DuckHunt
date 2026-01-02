@@ -1,7 +1,18 @@
+/**
+ * @file marcadores.h
+ * @author Alan Jonathan Cerritos Hernandez (alanchdez147@gmail.com) - 2026640080
+ * @author Ricardo Chaparro Zarco (ricardochzarco@gmail.com) - 2026640302
+ * @author Jesus Roque Lopez (jesusroquelopez22@gmail.com) - 2026640210
+ * @brief Archivo de cabecera para las declaraciones de funciones, structs y enums dentro de marcadores
+ * @version 0.1
+ * @date 2025-12-04
+ * Practica 9: Manejo de Puerto Serie
+ */
 #ifndef MARCADORES_H_
 #define MARCADORES_H_
 
 #include "juego.h"
+#include "imagenes.h"
 #define MAX_JUAGDORES 5
 
 /**

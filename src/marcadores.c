@@ -1,5 +1,13 @@
-#include "juego.h"
-#include "imagenes.h"
+/**
+ * @file marcadores.h
+ * @author Alan Jonathan Cerritos Hernandez (alanchdez147@gmail.com) - 2026640080
+ * @author Ricardo Chaparro Zarco (ricardochzarco@gmail.com) - 2026640302
+ * @author Jesus Roque Lopez (jesusroquelopez22@gmail.com) - 2026640210
+ * @brief Archivo de definiciones para marcadores.c
+ * @version 0.1
+ * @date 2025-12-04
+ * Practica 9: Manejo de Puerto Serie
+ */
 #include "marcadores.h"
 
 void mostrarMarcadores(EstadoJuego *estadoJuego, Imagenes *imagenes, Juego *juego)

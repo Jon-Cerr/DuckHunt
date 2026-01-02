@@ -2,7 +2,6 @@ MAIN=main.c
 COMPILER=gcc
 APP=main.exe
 GRAPHICS_H=.\src\graficos.h
-GRAPHICS_LIB=graficos.o
 GRAPHICS_SRC=.\src\graficos.c
 WIN_FLAGS=-mwindows
 SERIAL=.\src\serial.c

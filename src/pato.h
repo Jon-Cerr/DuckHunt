@@ -1,3 +1,13 @@
+/**
+ * @file pato.h
+ * @author Alan Jonathan Cerritos Hernandez (alanchdez147@gmail.com) - 2026640080
+ * @author Ricardo Chaparro Zarco (ricardochzarco@gmail.com) - 2026640302
+ * @author Jesus Roque Lopez (jesusroquelopez22@gmail.com) - 2026640210
+ * @brief Archivo de cabecera para las declaraciones de funciones, struct y enums para pato
+ * @version 0.1
+ * @date 2025-12-04
+ * Practica 9: Manejo de Puerto Serie
+ */
 #ifndef PATO_H_
 #define PATO_H_
 
